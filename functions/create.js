@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    input {
+      width: 300px;
+      padding: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    #qr {
+      margin-top: 20px;
+    }
+
+    #stats {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>QR Code Tracker</h1>
+
+  <input id="urlInput" type="text" placeholder="Paste your link here" />
+  <br>
+  <button onclick="createQR()">Generate QR</button>
+
+  <div id="result"></div>
+  <canvas id="qr"></canvas>
+  <div id="stats"></div>
+
+<script>
+
+const API = "https://blue-frost-0968.romitkr361.workers.dev";
+
+let currentCode = null;
+
+async function createQR() {
+
+  const url = document.getElementById("urlInput").value;
+
+  if (!url) {
+    alert("Enter a URL");
+    return;
+  }
+
+  const response = await fetch(API + "/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ url })
+  });
+
+  const data = await response.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  const shortUrl = data.shortUrl;
+  currentCode = data.code;
+
+  document.getElementById("result").innerHTML =
+    `<p>Short Link: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>`;
+
+  // Generate QR
+  QRCode.toCanvas(document.getElementById("qr"), shortUrl);
+
+  loadStats();
+}
+
+async function loadStats() {
+
+  if (!currentCode) return;
+
+  const response = await fetch(API + "/stats/" + currentCode);
+  const data = await response.json();
+
+  document.getElementById("stats").innerText =
+    "Total Scans: " + data.scans;
+}
+
+// Auto refresh stats every 5 seconds
+setInterval(loadStats, 5000);
+
+</script>
+
+</body>
+</html>
